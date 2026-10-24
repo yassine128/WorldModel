@@ -1,0 +1,14 @@
+procgen
+gym<0.26
+gym3
+torch
+torchvision
+einops
+numpy<2
+h5py
+tqdm
+tensorboard
+imageio
+imageio-ffmpeg
+opencv-python
+pyyaml
