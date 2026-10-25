@@ -1,4 +1,5 @@
-procgen
+gymnasium
+ale-py
 gym<0.26
 gym3
 torch
