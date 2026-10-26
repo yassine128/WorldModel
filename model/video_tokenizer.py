@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 class vidTokenizer(nn.Module): 
-    def __init__(self, learning_rate):
+    def __init__(self, learning_rate=1e-3):
         super().__init__()
 
         self.latent_dim = 128
