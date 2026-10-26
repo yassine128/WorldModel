@@ -1,9 +1,5 @@
 gymnasium
 ale-py
-gym<0.26
-gym3
-torch
-torchvision
 einops
 numpy<2
 h5py
@@ -13,3 +9,4 @@ imageio
 imageio-ffmpeg
 opencv-python
 pyyaml
+matplotlib
