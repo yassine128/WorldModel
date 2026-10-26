@@ -55,13 +55,17 @@ loader = DataLoader(TensorDataset(xtr, ctr, ytr), batch_size=BATCH, shuffle=True
 
 model = DynamicsModel(latent_dim=128, n_codes=N_CODES, context=W).to(dev)
 opt = torch.optim.Adam(model.parameters(), lr=LR)
+NOISE = 0.1 * z.std().item()
 train_hist, val_hist = [], []
 for epoch in range(EPOCHS):
     model.train()
     total = 0.0
     for x, cd, y in loader:
         x, cd, y = x.to(dev), cd.to(dev), y.to(dev)
-        loss = F.mse_loss(model(x, cd), y)
+        pred = model(x + NOISE * torch.randn_like(x), cd)
+        loss = F.mse_loss(pred, y)
+        x2 = torch.cat([x[:, :1], pred.detach()[:, :-1]], dim=1)
+        loss = loss + F.mse_loss(model(x2, cd)[:, 1:], y[:, 1:])
         opt.zero_grad(); loss.backward(); opt.step()
         total += loss.item() * len(x)
     model.eval()

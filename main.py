@@ -16,6 +16,7 @@ W, N_CODES, FPS, SCALE = 8, 4, 15, 8
 KEY_TO_CODE = {ord("w"): 1, ord("s"): 2, ord("0"): 0, ord("1"): 1, ord("2"): 2, ord("3"): 3}
 IDLE_CODE = 0 
 KEY_HOLD_SECONDS = 0.15
+SNAP = True 
 
 tok = vidTokenizer().to(dev)
 tok.load_state_dict(torch.load(PROJECT_ROOT / "checkpoints/tokenizer_frozen.pt", map_location=dev))
@@ -37,9 +38,9 @@ with torch.no_grad():
     init_codes = lam(z_all[:-1], z_all[1:])[1]              
 INIT_Z, INIT_C = z_all[:W].unsqueeze(0).clone(), init_codes.unsqueeze(0).clone()
 
-def to_image(z):
+def to_image(frame):
     with torch.no_grad():
-        f = tok.decoder(z)[0, 0].clamp(0, 1).cpu().numpy()
+        f = frame[0, 0].clamp(0, 1).cpu().numpy()
     return cv2.resize((f * 255).astype(np.uint8), None, fx=SCALE, fy=SCALE,
                       interpolation=cv2.INTER_NEAREST)
 
@@ -59,10 +60,13 @@ while True:
     with torch.no_grad():
         codes[0, -1] = code
         z_new = dyn(z, codes)[:, -1]
+        frame = tok.decoder(z_new)
+        if SNAP:
+            z_new = tok.encoder(frame) 
         z = torch.cat([z[:, 1:], z_new.unsqueeze(1)], dim=1)
         codes = torch.cat([codes[:, 1:], torch.full((1, 1), IDLE_CODE, device=dev)], dim=1)
 
-    img = to_image(z_new)
+    img = to_image(frame)
     cv2.putText(img, f"code {code}", (8, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.7, 255, 2)
     cv2.imshow("World model", img)
     time.sleep(max(0, 1 / FPS - (time.time() - t0)))
