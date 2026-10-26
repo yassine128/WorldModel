@@ -18,7 +18,7 @@ stats_dir.mkdir(exist_ok=True)
 frames = np.load(PROJECT_ROOT / "data" / "pong_data.npz")["frames"].reshape(-1, 64, 64)
 X = torch.from_numpy(frames).float().div(255).unsqueeze(1).to(dev)
 
-model = vidTokenizer(learning_rate=1e-3).to(dev)
+model = vidTokenizer(learning_rate=3e-4).to(dev)
 
 idx = torch.linspace(0, len(X) - 1, 6).long() 
 examples = X[idx]
@@ -60,4 +60,5 @@ print(f"final loss {history[-1]:.5f}, psnr {psnr(before):.1f} -> {psnr(after):.1
 
 model.eval()
 model.requires_grad_(False)
-torch.save(model.state_dict(), PROJECT_ROOT / "tokenizer_frozen.pt")
+(PROJECT_ROOT / "checkpoints").mkdir(exist_ok=True)
+torch.save(model.state_dict(), PROJECT_ROOT / "checkpoints" / "tokenizer_frozen.pt")

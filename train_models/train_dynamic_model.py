@@ -10,31 +10,25 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from model.video_tokenizer import vidTokenizer
-from model.latent_action_model import LAM
 from model.dynamic_model import DynamicsModel
 
 dev = "cuda" if torch.cuda.is_available() else "cpu"
-EPOCHS, BATCH, LR, W, N_CODES = 30, 128, 3e-4, 8, 4
+EPOCHS, BATCH, LR, W, N_ACTIONS = 30, 128, 3e-4, 8, 3
 (PROJECT_ROOT / "stats").mkdir(exist_ok=True)
 (PROJECT_ROOT / "checkpoints").mkdir(exist_ok=True)
 
 tok = vidTokenizer().to(dev)
 tok.load_state_dict(torch.load(PROJECT_ROOT / "checkpoints/tokenizer_frozen.pt", map_location=dev))
 tok.eval().requires_grad_(False)
-lam = LAM(latent_dim=128, d_model=128, n_codes=N_CODES).to(dev)
-lam.load_state_dict(torch.load(PROJECT_ROOT / "checkpoints/lam_frozen.pt", map_location=dev))
-lam.eval().requires_grad_(False)
 
 d = np.load(PROJECT_ROOT / "data/pong_data.npz")
-frames, dones = d["frames"], d["dones"]
+frames, dones, actions = d["frames"], d["dones"], d["actions"]
 T, E = frames.shape[:2]
 flat = torch.from_numpy(frames.reshape(-1, 64, 64)).float().div(255).unsqueeze(1)
 with torch.no_grad():
     z = torch.cat([tok.encoder(flat[i:i + 1024].to(dev)).cpu()
                    for i in range(0, len(flat), 1024)]).reshape(T, E, -1)
-    a, b = z[:-1].reshape(-1, 128), z[1:].reshape(-1, 128)
-    c = torch.cat([lam(a[i:i + 4096].to(dev), b[i:i + 4096].to(dev))[1].cpu()
-                   for i in range(0, len(a), 4096)]).reshape(T - 1, E)
+c = torch.from_numpy(actions).long()
 
 def make_windows(envs):
     s = np.arange(T - W)
@@ -53,7 +47,7 @@ print(f"train {len(xtr)} windows, val {len(xva)}, baseline mse (copy z_t): "
       f"{F.mse_loss(xva, yva):.6f}")
 loader = DataLoader(TensorDataset(xtr, ctr, ytr), batch_size=BATCH, shuffle=True)
 
-model = DynamicsModel(latent_dim=128, n_codes=N_CODES, context=W).to(dev)
+model = DynamicsModel(latent_dim=128, n_codes=N_ACTIONS, context=W).to(dev)
 opt = torch.optim.Adam(model.parameters(), lr=LR)
 NOISE = 0.1 * z.std().item()
 train_hist, val_hist = [], []
