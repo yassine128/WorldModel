@@ -59,5 +59,5 @@ plt.savefig(stats_dir / "before_after.png", dpi=150); plt.close()
 print(f"final loss {history[-1]:.5f}, psnr {psnr(before):.1f} -> {psnr(after):.1f} dB")
 
 model.eval()
-model.requires_grad_(False)  # freeze
+model.requires_grad_(False)
 torch.save(model.state_dict(), PROJECT_ROOT / "tokenizer_frozen.pt")
